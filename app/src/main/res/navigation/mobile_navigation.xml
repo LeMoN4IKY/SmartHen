@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@id/navigation_dashboard">
+
+    <fragment
+        android:id="@+id/navigation_dashboard"
+        android:name="com.example.smartcoop.DashboardFragment"
+        android:label="Главная"
+        tools:layout="@layout/fragment_dashboard" />
+
+    <fragment
+        android:id="@+id/navigation_camera"
+        android:name="com.example.smartcoop.CameraFragment"
+        android:label="Камера"
+        tools:layout="@layout/fragment_camera" />
+
+    <fragment
+        android:id="@+id/navigation_errors"
+        android:name="com.example.smartcoop.ErrorsFragment"
+        android:label="Сбои"
+        tools:layout="@layout/fragment_errors" />
+
+    <fragment
+        android:id="@+id/navigation_analytics"
+        android:name="com.example.smartcoop.AnalyticsFragment"
+        android:label="Аналитика"
+        tools:layout="@layout/fragment_analytics" />
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.smartcoop.ProfileFragment"
+        android:label="Профиль"
+        tools:layout="@layout/fragment_profile" />
+
+</navigation>

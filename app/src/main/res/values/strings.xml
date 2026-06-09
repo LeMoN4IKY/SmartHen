@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">SmartHen</string>
+    <string name="water">Вода</string>
+    <string name="feed">Корм</string>
+    <string name="temperature">Температура</string>
+    <string name="heating">Отопление</string>
+    <string name="on">ВКЛ</string>
+    <string name="off">ВЫКЛ</string>
+    <string name="air_quality">Загрязнение воздуха</string>
+    <string name="eggs_collected">Накоплено яиц</string>
+    <string name="collect_eggs">СОБРАТЬ ЯЙЦА</string>
+    <string name="profile">Профиль</string>
+    <string name="camera">Камера</string>
+    <string name="errors">Сбои</string>
+    <string name="analytics">Аналитика</string>
+    <string name="dark_theme">Тёмная тема</string>
+    <string name="save_settings">Сохранить настройки</string>
+    <string name="language">Язык</string>
+    <string name="language_selection">Выберите язык</string>
+    <string name="diagnostics">Диагностика систем</string>
+    <string name="ok">Исправна</string>
+    <string name="ventilation">Вентиляция</string>
+    <string name="feeder">Кормушка</string>
+    <string name="waterer">Автопоилка</string>
+    <string name="temp_sensor">Датчик температуры</string>
+    <string name="air_sensor">Датчик воздуха</string>
+    <string name="heater">Отопитель</string>
+    <string name="water_sensor">Датчик воды</string>
+    <string name="feed_sensor">Датчик корма</string>
+    <string name="camera_sensor">Камера</string>
+</resources>

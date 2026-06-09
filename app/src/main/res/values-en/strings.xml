@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SmartHen</string>
+    <string name="water">Water</string>
+    <string name="feed">Feed</string>
+    <string name="temperature">Temperature</string>
+    <string name="heating">Heating</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="air_quality">Air Quality</string>
+    <string name="eggs_collected">Eggs Collected</string>
+    <string name="collect_eggs">COLLECT EGGS</string>
+    <string name="profile">Profile</string>
+    <string name="camera">Camera</string>
+    <string name="errors">Errors</string>
+    <string name="analytics">Analytics</string>
+    <string name="dark_theme">Dark Theme</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="language">Language</string>
+    <string name="language_selection">Select language</string>
+    <string name="diagnostics">System Diagnostics</string>
+    <string name="ok">OK</string>
+    <string name="ventilation">Ventilation</string>
+    <string name="feeder">Feeder</string>
+    <string name="waterer">Waterer</string>
+    <string name="temp_sensor">Temperature sensor</string>
+    <string name="air_sensor">Air sensor</string>
+    <string name="heater">Heater</string>
+    <string name="water_sensor">Water sensor</string>
+    <string name="feed_sensor">Feed sensor</string>
+    <string name="camera_sensor">Camera</string>
+</resources>
