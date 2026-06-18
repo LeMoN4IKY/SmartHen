@@ -17,5 +17,6 @@ data class Sensor(
     val currentValue: Float,
     val minValue: Float = 0f,
     val maxValue: Float = 100f,
-    val warningThreshold: Float = 20f
+    val warningThreshold: Float = 20f,
+    val isOnline: Boolean = true  // ✅ добавлено для статуса
 )

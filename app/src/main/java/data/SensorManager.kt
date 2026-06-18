@@ -16,14 +16,16 @@ class SensorManager(private val context: Context) {
                 type = SensorType.WATER,
                 name = "Вода",
                 unit = "%",
-                currentValue = 65f
+                currentValue = 65f,
+                isOnline = true
             ),
             Sensor(
                 id = "sensor_feed",
                 type = SensorType.FEED,
                 name = "Корм",
                 unit = "%",
-                currentValue = 42f
+                currentValue = 42f,
+                isOnline = true
             ),
             Sensor(
                 id = "sensor_temp",
@@ -33,7 +35,8 @@ class SensorManager(private val context: Context) {
                 currentValue = 22.5f,
                 minValue = -10f,
                 maxValue = 50f,
-                warningThreshold = 19f
+                warningThreshold = 19f,
+                isOnline = true
             ),
             Sensor(
                 id = "sensor_heating",
@@ -42,14 +45,16 @@ class SensorManager(private val context: Context) {
                 unit = "",
                 currentValue = 0f,
                 minValue = 0f,
-                maxValue = 1f
+                maxValue = 1f,
+                isOnline = true
             ),
             Sensor(
                 id = "sensor_air",
                 type = SensorType.AIR_QUALITY,
                 name = "Загрязнение воздуха",
                 unit = "%",
-                currentValue = 35f
+                currentValue = 35f,
+                isOnline = true
             ),
             Sensor(
                 id = "sensor_eggs",
@@ -58,7 +63,8 @@ class SensorManager(private val context: Context) {
                 unit = "шт",
                 currentValue = 28f,
                 maxValue = 20f,
-                warningThreshold = 10f
+                warningThreshold = 15f,
+                isOnline = true
             )
         )
         _sensors.value = mockSensors
@@ -80,6 +86,16 @@ class SensorManager(private val context: Context) {
                     _sensors.value = currentList
                 }
             }
+        }
+    }
+
+    // ✅ НОВЫЙ МЕТОД для обновления статуса датчика
+    suspend fun updateSensorStatus(sensorId: String, isOnline: Boolean) {
+        val currentList = _sensors.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == sensorId }
+        if (index >= 0) {
+            currentList[index] = currentList[index].copy(isOnline = isOnline)
+            _sensors.value = currentList
         }
     }
 }
