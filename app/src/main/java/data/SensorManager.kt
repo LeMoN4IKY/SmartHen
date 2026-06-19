@@ -10,6 +10,7 @@ class SensorManager(private val context: Context) {
     val sensors: StateFlow<List<Sensor>> = _sensors
 
     suspend fun loadSensors(coopId: String) {
+        // 🔧 ЗДЕСЬ БУДЕТ ЗАПРОС К СЕРВЕРУ: GET /sensors?coopId=...
         val mockSensors = listOf(
             Sensor(
                 id = "sensor_water",
@@ -89,7 +90,6 @@ class SensorManager(private val context: Context) {
         }
     }
 
-    // ✅ НОВЫЙ МЕТОД для обновления статуса датчика
     suspend fun updateSensorStatus(sensorId: String, isOnline: Boolean) {
         val currentList = _sensors.value.toMutableList()
         val index = currentList.indexOfFirst { it.id == sensorId }

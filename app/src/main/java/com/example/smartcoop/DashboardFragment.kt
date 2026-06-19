@@ -33,6 +33,7 @@ class DashboardFragment : Fragment() {
     private lateinit var repository: SmartCoopRepository
     private lateinit var sensorManager: SensorManager
     private lateinit var mediaPlayer: android.media.MediaPlayer
+    private lateinit var coopManager: CoopManager
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -49,6 +50,7 @@ class DashboardFragment : Fragment() {
 
         repository = SmartCoopRepository(requireContext())
         sensorManager = SensorManager(requireContext())
+        coopManager = CoopManager(requireContext())
 
         sensorsContainer = view.findViewById(R.id.sensorsContainer)
         warningMessage = view.findViewById(R.id.warningMessage)
@@ -70,8 +72,20 @@ class DashboardFragment : Fragment() {
             updateSensors()
         }
 
+        // ========== ПОДПИСКА НА СМЕНУ КУРЯТНИКА ==========
         lifecycleScope.launch {
-            sensorManager.loadSensors("coop_1")
+            coopManager.loadCoops()
+            coopManager.selectedCoopId.collect { coopId ->
+                if (coopId != null) {
+                    DataManager.currentCoopId = coopId
+                    sensorManager.loadSensors(coopId)
+                    updateSensors()
+                }
+            }
+        }
+
+        // ========== ПЕРВИЧНАЯ ЗАГРУЗКА ==========
+        lifecycleScope.launch {
             sensorManager.sensors.collect { sensors ->
                 updateSensorsUI(sensors)
             }
@@ -90,22 +104,18 @@ class DashboardFragment : Fragment() {
         val air = sensors.find { it.type == SensorType.AIR_QUALITY }
         val eggs = sensors.find { it.type == SensorType.EGG_COUNT }
 
-        // Вода + Корм
         if (water != null && feed != null) {
             sensorsContainer.addView(createDoubleRow(water, feed))
         }
 
-        // Температура + Отопление (в одной строке)
         if (temp != null && heating != null) {
             sensorsContainer.addView(createTempHeatingRow(temp, heating))
         }
 
-        // Воздух
         if (air != null) {
             sensorsContainer.addView(createSingleRow(air))
         }
 
-        // Яйца
         if (eggs != null) {
             sensorsContainer.addView(createEggsRow(eggs))
         }
@@ -163,7 +173,6 @@ class DashboardFragment : Fragment() {
         name.text = sensor.name
         progress.visibility = View.GONE
 
-        // Обновляем статус отопления в реальном времени
         lifecycleScope.launch {
             sensorManager.sensors.collect { sensors ->
                 val tempSensor = sensors.find { it.type == SensorType.TEMPERATURE }
@@ -282,7 +291,7 @@ class DashboardFragment : Fragment() {
             val feed = Random.nextInt(100)
             val temp = 15f + Random.nextFloat() * 15f
             val airQuality = Random.nextInt(100)
-            val eggs = Random.nextInt(20)
+            val eggs = Random.nextInt(50)
 
             sensorManager.updateSensorValue("sensor_water", water.toFloat())
             sensorManager.updateSensorValue("sensor_feed", feed.toFloat())

@@ -11,6 +11,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- Заголовок -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -56,11 +57,11 @@
                     android:layout_marginBottom="12dp" />
 
                 <EditText
-                    android:id="@+id/coopName"
+                    android:id="@+id/userPhone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Название курятника"
-                    android:text="Курятник №1"
+                    android:hint="Телефон"
+                    android:text="+7 999 123-45-67"
                     android:padding="14dp"
                     android:background="#1E1E1E"
                     android:textColor="#FFFFFF"
@@ -76,6 +77,126 @@
                     android:padding="14dp"
                     android:background="#1E1E1E"
                     android:textColor="#FFFFFF" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Карточка курятников -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="16dp"
+            android:background="#2C2C2C">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🏠 Мои курятники"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#A5D6A7"
+                    android:layout_marginBottom="16dp" />
+
+                <Spinner
+                    android:id="@+id/coopSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="#1E1E1E"
+                    android:padding="12dp"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <Button
+                        android:id="@+id/renameCoopBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="✏️ Переименовать"
+                        android:backgroundTint="#FF9800"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:layout_marginEnd="4dp" />
+
+                    <Button
+                        android:id="@+id/scanQrBtn"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="📷 Сканировать QR"
+                        android:backgroundTint="#4CAF50"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:layout_marginStart="4dp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Карточка подписки -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            android:layout_marginBottom="16dp"
+            android:background="#2C2C2C">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💳 Подписка"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#A5D6A7"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tariffStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Тариф: Базовый (до 30.06.2026)"
+                    android:textSize="14sp"
+                    android:textColor="#FFFFFF"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/changeTariffBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="💳 Выбрать тариф"
+                    android:backgroundTint="#2196F3"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="8dp" />
+
+                <Button
+                    android:id="@+id/addCardBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="💳 Привязать карту"
+                    android:backgroundTint="#673AB7"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -98,7 +219,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Настройки"
+                    android:text="⚙️ Настройки"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#A5D6A7"
@@ -126,7 +247,6 @@
 
                 </LinearLayout>
 
-                <!-- Выбор языка -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
