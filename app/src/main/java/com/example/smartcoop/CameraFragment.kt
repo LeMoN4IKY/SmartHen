@@ -12,8 +12,11 @@ import androidx.fragment.app.Fragment
 class CameraFragment : Fragment() {
 
     private lateinit var cameraStatus: TextView
-    private lateinit var startBtn: Button
+    private lateinit var toggleCameraBtn: Button
+    private lateinit var recordBtn: Button
+
     private var isCameraOn = false
+    private var isRecording = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,18 +30,47 @@ class CameraFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         cameraStatus = view.findViewById(R.id.cameraStatus)
-        startBtn = view.findViewById(R.id.startCameraBtn)
+        toggleCameraBtn = view.findViewById(R.id.toggleCameraBtn)
+        recordBtn = view.findViewById(R.id.recordBtn)
 
-        startBtn.setOnClickListener {
+        // ========== КНОПКА ЗАПУСК / ОСТАНОВКА КАМЕРЫ ==========
+        toggleCameraBtn.setOnClickListener {
             if (isCameraOn) {
-                cameraStatus.text = "⏸ Камера остановлена"
-                startBtn.text = "▶ Запустить камеру"
+                // 🔧 ЗДЕСЬ БУДЕТ ЗАПРОС К СЕРВЕРУ: POST /camera/stop
                 isCameraOn = false
+                isRecording = false
+                cameraStatus.text = "⏸ Камера остановлена"
+                cameraStatus.setTextColor(resources.getColor(android.R.color.darker_gray))
+                toggleCameraBtn.text = "▶ Запустить камеру"
+                recordBtn.text = "⏺ Начать запись"
+                Toast.makeText(requireContext(), "🔍 Запрос на остановку камеры отправлен", Toast.LENGTH_SHORT).show()
             } else {
-                cameraStatus.text = "📹 Камера запущена (демо-режим)"
-                startBtn.text = "⏹ Остановить камеру"
+                // 🔧 ЗДЕСЬ БУДЕТ ЗАПРОС К СЕРВЕРУ: POST /camera/start
                 isCameraOn = true
-                Toast.makeText(context, "Камера запущена", Toast.LENGTH_SHORT).show()
+                cameraStatus.text = "📹 Камера запущена"
+                cameraStatus.setTextColor(resources.getColor(android.R.color.holo_green_dark))
+                toggleCameraBtn.text = "⏹ Остановить камеру"
+                Toast.makeText(requireContext(), "🔍 Запрос на запуск камеры отправлен", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // ========== ЗАПИСЬ ==========
+        recordBtn.setOnClickListener {
+            if (!isCameraOn) {
+                Toast.makeText(requireContext(), "⚠️ Сначала запустите камеру", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (isRecording) {
+                // 🔧 ЗДЕСЬ БУДЕТ ЗАПРОС К СЕРВЕРУ: POST /camera/stop_record
+                isRecording = false
+                recordBtn.text = "⏺ Начать запись"
+                Toast.makeText(requireContext(), "⏹ Запись остановлена", Toast.LENGTH_SHORT).show()
+            } else {
+                // 🔧 ЗДЕСЬ БУДЕТ ЗАПРОС К СЕРВЕРУ: POST /camera/start_record
+                isRecording = true
+                recordBtn.text = "⏹ Остановить запись"
+                Toast.makeText(requireContext(), "⏺ Запись начата", Toast.LENGTH_SHORT).show()
             }
         }
     }
