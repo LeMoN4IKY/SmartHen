@@ -20,17 +20,13 @@ import androidx.lifecycle.lifecycleScope
 import com.example.smartcoop.data.Sensor
 import com.example.smartcoop.data.SensorManager
 import com.example.smartcoop.data.SensorType
-import com.example.smartcoop.data.SmartCoopRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 
 class DashboardFragment : Fragment() {
 
     private lateinit var sensorsContainer: LinearLayout
     private lateinit var warningMessage: TextView
     private lateinit var chickenRun: ImageView
-    private lateinit var repository: SmartCoopRepository
     private lateinit var sensorManager: SensorManager
     private lateinit var mediaPlayer: android.media.MediaPlayer
     private lateinit var coopManager: CoopManager
@@ -48,7 +44,6 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        repository = SmartCoopRepository(requireContext())
         sensorManager = SensorManager(requireContext())
         coopManager = CoopManager(requireContext())
 
@@ -64,34 +59,16 @@ class DashboardFragment : Fragment() {
                 mediaPlayer.start()
             }
             startEggLayingAnimation()
-            val eggsCollected = (5..20).random()
-            lifecycleScope.launch(Dispatchers.IO) {
-                repository.addEggs(eggsCollected)
-            }
-            Toast.makeText(requireContext(), "🥚 Собрано $eggsCollected яиц!", Toast.LENGTH_SHORT).show()
-            updateSensors()
+            Toast.makeText(requireContext(), "🥚 Яйца собраны!", Toast.LENGTH_SHORT).show()
         }
 
-        // ========== ПОДПИСКА НА СМЕНУ КУРЯТНИКА ==========
+        // ========== ЗАГРУЗКА ДАННЫХ С СЕРВЕРА ==========
         lifecycleScope.launch {
-            coopManager.loadCoops()
-            coopManager.selectedCoopId.collect { coopId ->
-                if (coopId != null) {
-                    DataManager.currentCoopId = coopId
-                    sensorManager.loadSensors(coopId)
-                    updateSensors()
-                }
-            }
-        }
-
-        // ========== ПЕРВИЧНАЯ ЗАГРУЗКА ==========
-        lifecycleScope.launch {
+            sensorManager.loadSensors("1")
             sensorManager.sensors.collect { sensors ->
                 updateSensorsUI(sensors)
             }
         }
-
-        startDataUpdates()
     }
 
     private fun updateSensorsUI(sensors: List<Sensor>) {
@@ -272,51 +249,6 @@ class DashboardFragment : Fragment() {
                 chickenRun.translationX = 0f
             }
             .start()
-    }
-
-    private fun startDataUpdates() {
-        handler.post(object : Runnable {
-            override fun run() {
-                if (isAdded) {
-                    updateSensors()
-                }
-                handler.postDelayed(this, 5000)
-            }
-        })
-    }
-
-    private fun updateSensors() {
-        lifecycleScope.launch {
-            val water = Random.nextInt(100)
-            val feed = Random.nextInt(100)
-            val temp = 15f + Random.nextFloat() * 15f
-            val airQuality = Random.nextInt(100)
-            val eggs = Random.nextInt(50)
-
-            sensorManager.updateSensorValue("sensor_water", water.toFloat())
-            sensorManager.updateSensorValue("sensor_feed", feed.toFloat())
-            sensorManager.updateSensorValue("sensor_temp", temp)
-            sensorManager.updateSensorValue("sensor_air", airQuality.toFloat())
-            sensorManager.updateSensorValue("sensor_eggs", eggs.toFloat())
-
-            DataManager.currentWater = water
-            DataManager.currentFeed = feed
-            DataManager.currentEggs = eggs
-
-            warningMessage.visibility = View.GONE
-            if (feed < 20) {
-                warningMessage.text = "⚠️ Скоро закончится корм! Осталось $feed%"
-                warningMessage.visibility = View.VISIBLE
-            } else if (water < 20) {
-                warningMessage.text = "⚠️ Скоро закончится вода! Осталось $water%"
-                warningMessage.visibility = View.VISIBLE
-            } else if (eggs > 40) {
-                warningMessage.text = "🥚 СРОЧНО! Место для яиц переполнено ($eggs шт)"
-                warningMessage.visibility = View.VISIBLE
-            }
-
-            repository.saveSensorData(water, feed, temp, airQuality)
-        }
     }
 
     override fun onDestroy() {
