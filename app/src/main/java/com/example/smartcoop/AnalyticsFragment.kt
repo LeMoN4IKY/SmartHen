@@ -278,9 +278,9 @@ class AnalyticsFragment : Fragment() {
         val average = if (eggs.isNotEmpty()) total / eggs.size else 0
         val best = eggs.maxByOrNull { it.second }?.second ?: 0
 
-        totalText.text = "📊 За период: $total яиц"
-        averageText.text = "📈 В среднем: $average яиц/день"
-        bestDayText.text = "🏆 Лучший день: $best яиц"
+        totalText.text = getString(R.string.stat_for_period, total)
+        averageText.text = getString(R.string.stat_average, average)
+        bestDayText.text = getString(R.string.stat_best_day, best)
     }
 
     private fun updateMonthCharts(eggs: List<Pair<String, Int>>, temps: List<Pair<String, Float>>) {

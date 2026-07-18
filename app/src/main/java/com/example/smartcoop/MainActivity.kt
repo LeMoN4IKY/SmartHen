@@ -25,7 +25,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navView: BottomNavigationView
     private lateinit var prefs: SharedPreferences
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.applyLanguage(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+
         LocaleHelper.applyLanguage(baseContext)
 
         super.onCreate(savedInstanceState)

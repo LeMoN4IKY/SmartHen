@@ -31,7 +31,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ваши куры в порядке 🌾"
+                android:text="@string/your_chickens_are_ok"
                 android:textSize="16sp"
                 android:textColor="#555555"
                 android:layout_marginBottom="24dp" />
@@ -74,7 +74,7 @@
         android:id="@+id/collectEggsBtn"
         android:layout_width="match_parent"
         android:layout_height="65dp"
-        android:text="СОБРАТЬ ЯЙЦА"
+        android:text="@string/collect_eggs"
         android:textSize="18sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"

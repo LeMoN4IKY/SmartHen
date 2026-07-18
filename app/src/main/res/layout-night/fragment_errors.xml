@@ -14,7 +14,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🔧 Диагностика систем"
+            android:text="@string/fragment_errors"
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
@@ -39,7 +39,7 @@
                     android:id="@+id/checkAllBtn"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="🔄 Проверить все системы"
+                    android:text="@string/check_all_systems"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="#FFFFFF"
@@ -68,7 +68,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Состояние датчиков"
+                    android:text="@string/sensor_status"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#A5D6A7"
