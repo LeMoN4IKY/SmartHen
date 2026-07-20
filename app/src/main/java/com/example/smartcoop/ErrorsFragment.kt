@@ -10,10 +10,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.smartcoop.data.Sensor
 import com.example.smartcoop.data.SensorManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.example.smartcoop.data.Sensor
 
 class ErrorsFragment : Fragment() {
 
@@ -43,8 +43,9 @@ class ErrorsFragment : Fragment() {
             }
         }
 
+        // ========== ЗАГРУЗКА ДАННЫХ ==========
         lifecycleScope.launch {
-            sensorManager.loadSensors("coop_1")
+            sensorManager.loadSensors("1")  // ← ЗАГРУЖАЕМ ДАННЫЕ
             sensorManager.sensors.collect { sensors ->
                 updateErrorsUI(sensors)
             }
@@ -59,17 +60,7 @@ class ErrorsFragment : Fragment() {
         lifecycleScope.launch {
             Toast.makeText(requireContext(), "🔍 Проверка систем...", Toast.LENGTH_SHORT).show()
 
-            // ============================================================
-            // 🔧 СЮДА ТЫ БУДЕШЬ ВСТАВЛЯТЬ РЕАЛЬНЫЙ ЗАПРОС К БЭКЕНДУ
-            // ============================================================
-            // Пример:
-            // val results = api.checkAllSensors("coop_1")
-            // results.forEach { status ->
-            //     sensorManager.updateSensorStatus(status.sensorId, status.isOnline)
-            // }
-            // ============================================================
-
-            // Пока — заглушка с задержкой (имитация опроса)
+            // ========== ЗАГЛУШКА (ПОТОМ ЗАМЕНИШЬ НА РЕАЛЬНЫЙ ЗАПРОС) ==========
             delay(1500)
 
             // Обновляем UI
