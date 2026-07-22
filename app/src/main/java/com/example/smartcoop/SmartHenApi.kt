@@ -62,6 +62,16 @@ interface SmartHenApi {
         @Query("user_id") userId: String,
         @Query("tariff") tariff: String
     ): Map<String, String>
+
+    // ========== ЯЙЦА ==========
+    @POST("eggs/add")
+    suspend fun addEggs(
+        @Query("coop_id") coopId: String,
+        @Query("count") count: Int
+    ): Map<String, String>
+
+    @GET("eggs/stats/{coop_id}")
+    suspend fun getEggStats(@Path("coop_id") coopId: String): List<EggStats>
 }
 
 data class SensorStatus(
@@ -72,4 +82,9 @@ data class SensorStatus(
 data class CameraStatus(
     val is_on: Boolean,
     val is_recording: Boolean
+)
+
+data class EggStats(
+    val date: String,
+    val count: Int
 )

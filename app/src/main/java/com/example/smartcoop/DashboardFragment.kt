@@ -59,7 +59,19 @@ class DashboardFragment : Fragment() {
                 mediaPlayer.start()
             }
             startEggLayingAnimation()
-            Toast.makeText(requireContext(), "🥚 Яйца собраны!", Toast.LENGTH_SHORT).show()
+            val eggsCollected = (5..20).random()
+            lifecycleScope.launch {
+                try {
+                    val api = RetrofitHelper.api
+                    val coopId = DataManager.currentCoopId ?: "1"
+                    api.addEggs(coopId, eggsCollected)
+                    Toast.makeText(requireContext(), "🥚 Собрано $eggsCollected яиц!", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Toast.makeText(requireContext(), "❌ Ошибка сохранения яиц", Toast.LENGTH_SHORT).show()
+                }
+            }
+            updateSensors()
         }
 
         // ========== ЗАГРУЗКА ДАННЫХ С СЕРВЕРА ==========
@@ -249,6 +261,13 @@ class DashboardFragment : Fragment() {
                 chickenRun.translationX = 0f
             }
             .start()
+    }
+
+    private fun updateSensors() {
+        lifecycleScope.launch {
+            val coopId = DataManager.currentCoopId ?: "1"
+            sensorManager.loadSensors(coopId)
+        }
     }
 
     override fun onDestroy() {

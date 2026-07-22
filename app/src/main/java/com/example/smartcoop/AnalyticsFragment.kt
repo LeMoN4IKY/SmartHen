@@ -96,7 +96,15 @@ class AnalyticsFragment : Fragment() {
             val weekStart = calendar.timeInMillis
             val weekEnd = weekStart + (7 * 24 * 60 * 60 * 1000)
 
-            val eggs = repository.getEggsForDateRange(weekStart, weekEnd)
+            val api = RetrofitHelper.api
+            val coopId = DataManager.currentCoopId ?: "1"
+            val eggs = try {
+                val stats = api.getEggStats(coopId)
+                stats.map { Pair(it.date, it.count) }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                emptyList()
+            }
             val temps = repository.getTemperaturesForDateRange(weekStart, weekEnd)
 
             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -114,7 +122,15 @@ class AnalyticsFragment : Fragment() {
         when (period) {
             "week" -> {
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val eggs = repository.getEggsForLastDays(7)
+                    val api = RetrofitHelper.api
+                    val coopId = DataManager.currentCoopId ?: "1"
+                    val eggs = try {
+                        val stats = api.getEggStats(coopId)
+                        stats.map { Pair(it.date, it.count) }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        emptyList()
+                    }
                     val temps = repository.getTemperaturesForLastDays(7)
                     withContext(Dispatchers.Main) {
                         updateWeekCharts(eggs, temps, "")  // ← добавили ""
