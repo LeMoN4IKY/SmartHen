@@ -49,6 +49,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.5")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.5")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // Room Database
     implementation("androidx.room:room-runtime:2.6.1")

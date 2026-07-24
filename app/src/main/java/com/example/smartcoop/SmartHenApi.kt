@@ -5,12 +5,23 @@ import com.example.smartcoop.data.Sensor
 import com.example.smartcoop.data.Coop
 import com.example.smartcoop.data.Subscription
 
+/**
+ * Интерфейс для работы с сервером SmartHen
+ * Все эндпоинты соответствуют FastAPI бэкенду
+ */
 interface SmartHenApi {
 
     // ========== ДАТЧИКИ ==========
+    /**
+     * Получить список всех датчиков для курятника
+     * @param coopId ID курятника
+     */
     @GET("sensors/{coopId}")
     suspend fun getSensors(@Path("coopId") coopId: String): List<Sensor>
 
+    /**
+     * Обновить значение конкретного датчика (используется ESP32 или вручную)
+     */
     @POST("sensors/{coopId}/{sensorId}")
     suspend fun updateSensor(
         @Path("coopId") coopId: String,
@@ -18,6 +29,9 @@ interface SmartHenApi {
         @Query("value") value: Float
     ): Map<String, String>
 
+    /**
+     * Проверить онлайн-статус всех датчиков
+     */
     @POST("sensors/check/{coopId}")
     suspend fun checkSensors(@Path("coopId") coopId: String): List<SensorStatus>
 
@@ -64,15 +78,47 @@ interface SmartHenApi {
     ): Map<String, String>
 
     // ========== ЯЙЦА ==========
+    /**
+     * Добавить яйца (используется для ручного ввода или для истории)
+     * @param coop_id ID курятника
+     * @param count количество добавляемых яиц
+     */
     @POST("eggs/add")
     suspend fun addEggs(
         @Query("coop_id") coopId: String,
         @Query("count") count: Int
     ): Map<String, String>
 
+    /**
+     * Собрать все яйца из курятника.
+     * Сервер должен вернуть количество собранных яиц (или просто статус),
+     * но мы будем брать значение с датчика EGG_COUNT до обнуления.
+     * Этот метод вызывается для логирования факта сбора.
+     */
+    @POST("eggs/collect")
+    suspend fun collectEggs(
+        @Query("coop_id") coopId: String
+    ): Map<String, String>
+
+    // ========== ИСТОРИЯ ==========
+    /**
+     * Получить историю датчика за N дней
+     */
+    @GET("sensors/history/{coop_id}/{sensor_id}")
+    suspend fun getSensorHistory(
+        @Path("coop_id") coopId: String,
+        @Path("sensor_id") sensorId: String,
+        @Query("days") days: Int = 7
+    ): List<SensorHistoryPoint>
+
+    /**
+     * Получить статистику по яйцам (по дням)
+     */
     @GET("eggs/stats/{coop_id}")
     suspend fun getEggStats(@Path("coop_id") coopId: String): List<EggStats>
 }
+
+// ===== ВСПОМОГАТЕЛЬНЫЕ DATA CLASS =====
 
 data class SensorStatus(
     val sensorId: String,
@@ -85,6 +131,11 @@ data class CameraStatus(
 )
 
 data class EggStats(
-    val date: String,
+    val date: String,   // формат "YYYY-MM-DD"
     val count: Int
+)
+
+data class SensorHistoryPoint(
+    val timestamp: Long,   // Unix timestamp
+    val value: Float
 )

@@ -6,6 +6,9 @@ import com.example.smartcoop.RetrofitHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/**
+ * Менеджер курятников — загрузка, выбор, переименование
+ */
 class CoopManager(private val context: Context) {
 
     private val _coops = MutableStateFlow<List<Coop>>(emptyList())
@@ -14,15 +17,30 @@ class CoopManager(private val context: Context) {
     private val _selectedCoopId = MutableStateFlow<String?>(null)
     val selectedCoopId: StateFlow<String?> = _selectedCoopId
 
-    private val userId = "user_1"  // 🔧 ПОЗЖЕ ЗАМЕНИМ НА РЕАЛЬНОГО ПОЛЬЗОВАТЕЛЯ
+    // ID пользователя — из DataManager
+    private val userId: String
+        get() = DataManager.userId ?: "user_1"
+
     private val api = RetrofitHelper.api
 
+    /**
+     * Загрузить список курятников с сервера
+     */
     suspend fun loadCoops() {
         try {
             val response = api.getCoops(userId)
             _coops.value = response
-            if (response.isNotEmpty()) {
-                _selectedCoopId.value = response.first().id
+            // Если есть курятники и нет выбранного — выбираем первый
+            if (response.isNotEmpty() && _selectedCoopId.value == null) {
+                selectCoop(response.first().id)
+            }
+            // Если выбранного нет в списке — выбираем первый
+            _selectedCoopId.value?.let { selectedId ->
+                if (response.none { it.id == selectedId }) {
+                    if (response.isNotEmpty()) {
+                        selectCoop(response.first().id)
+                    }
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -30,10 +48,18 @@ class CoopManager(private val context: Context) {
         }
     }
 
+    /**
+     * Выбрать курятник по ID
+     */
     fun selectCoop(coopId: String) {
         _selectedCoopId.value = coopId
+        // Синхронизация с DataManager
+        DataManager.currentCoopId = coopId
     }
 
+    /**
+     * Переименовать курятник
+     */
     suspend fun renameCoop(coopId: String, newName: String) {
         try {
             api.renameCoop(coopId, newName)
@@ -48,12 +74,32 @@ class CoopManager(private val context: Context) {
         }
     }
 
-    suspend fun addCoopBySerial(serial: String) {
-        try {
-            val response = api.addCoop(userId, serial)
-            loadCoops()  // перезагружаем список
+    /**
+     * Привязать курятник по QR-коду (серийному номеру)
+     */
+    suspend fun addCoopBySerial(serial: String): Boolean {
+        return try {
+            api.addCoop(userId, serial)
+            loadCoops()
+            true
         } catch (e: Exception) {
             e.printStackTrace()
+            false
         }
+    }
+
+    /**
+     * Получить текущий выбранный курятник
+     */
+    fun getSelectedCoop(): Coop? {
+        val id = _selectedCoopId.value ?: return null
+        return _coops.value.find { it.id == id }
+    }
+
+    /**
+     * Получить имя текущего курятника
+     */
+    fun getSelectedCoopName(): String {
+        return getSelectedCoop()?.name ?: "Не выбран"
     }
 }

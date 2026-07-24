@@ -8,13 +8,16 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.smartcoop.data.Sensor
 import com.example.smartcoop.data.SensorManager
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Фрагмент диагностики систем
+ */
 class ErrorsFragment : Fragment() {
 
     private lateinit var sensorManager: SensorManager
@@ -37,58 +40,112 @@ class ErrorsFragment : Fragment() {
         containerLayout = view.findViewById(R.id.errorsContainer)
         checkAllBtn = view.findViewById(R.id.checkAllBtn)
 
+        // Кнопка проверки
         checkAllBtn.setOnClickListener {
             if (!isChecking) {
                 startSystemCheck()
             }
         }
 
-        // ========== ЗАГРУЗКА ДАННЫХ ==========
+        // Загрузка датчиков
         lifecycleScope.launch {
-            sensorManager.loadSensors("1")  // ← ЗАГРУЖАЕМ ДАННЫЕ
+            val coopId = DataManager.getCurrentCoopIdOrDefault()
+            sensorManager.loadSensors(coopId)
             sensorManager.sensors.collect { sensors ->
                 updateErrorsUI(sensors)
             }
         }
     }
 
+    /**
+     * Перевод названия датчика
+     */
+    private fun translateSensorName(sensor: Sensor): String {
+        return when {
+            sensor.name.contains("Вода", ignoreCase = true) ||
+                    sensor.name.contains("Water", ignoreCase = true) -> getString(R.string.water)
+
+            sensor.name.contains("Корм", ignoreCase = true) ||
+                    sensor.name.contains("Feed", ignoreCase = true) -> getString(R.string.feed)
+
+            sensor.name.contains("Температура", ignoreCase = true) ||
+                    sensor.name.contains("Temperature", ignoreCase = true) -> getString(R.string.temp_sensor)
+
+            sensor.name.contains("Отопление", ignoreCase = true) ||
+                    sensor.name.contains("Heating", ignoreCase = true) -> getString(R.string.heating)
+
+            sensor.name.contains("Загрязнение", ignoreCase = true) ||
+                    sensor.name.contains("Air", ignoreCase = true) -> getString(R.string.air_quality)
+
+            sensor.name.contains("Накоплено яиц", ignoreCase = true) ||
+                    sensor.name.contains("Eggs", ignoreCase = true) -> getString(R.string.eggs_collected)
+
+            else -> sensor.name
+        }
+    }
+
+    /**
+     * Запуск проверки систем
+     */
     private fun startSystemCheck() {
         isChecking = true
         checkAllBtn.isEnabled = false
-        checkAllBtn.text = "⏳ Проверка..."
+        checkAllBtn.text = getString(R.string.checking_systems)
 
         lifecycleScope.launch {
-            Toast.makeText(requireContext(), "🔍 Проверка систем...", Toast.LENGTH_SHORT).show()
+            try {
+                Toast.makeText(requireContext(), R.string.checking_systems_toast, Toast.LENGTH_SHORT).show()
 
-            // ========== ЗАГЛУШКА (ПОТОМ ЗАМЕНИШЬ НА РЕАЛЬНЫЙ ЗАПРОС) ==========
-            delay(1500)
+                val results = sensorManager.checkAllSensors()
 
-            // Обновляем UI
-            updateErrorsUI(sensorManager.sensors.value)
+                updateErrorsUI(sensorManager.sensors.value)
 
-            isChecking = false
-            checkAllBtn.isEnabled = true
-            checkAllBtn.text = "🔄 Проверить все системы"
-
-            val offlineCount = sensorManager.sensors.value.count { !it.isOnline }
-            if (offlineCount > 0) {
+                val offlineCount = results.count { !it.isOnline }
+                if (offlineCount > 0) {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.sensors_offline_warning, offlineCount),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.all_systems_ok,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
                 Toast.makeText(
                     requireContext(),
-                    "⚠️ Обнаружено $offlineCount неисправных датчиков!",
+                    getString(R.string.check_error, e.message ?: ""),
                     Toast.LENGTH_LONG
                 ).show()
-            } else {
-                Toast.makeText(
-                    requireContext(),
-                    "✅ Все системы исправны!",
-                    Toast.LENGTH_SHORT
-                ).show()
+            } finally {
+                isChecking = false
+                checkAllBtn.isEnabled = true
+                checkAllBtn.text = getString(R.string.check_all_systems)
             }
         }
     }
 
+    /**
+     * Обновление UI списка датчиков
+     */
     private fun updateErrorsUI(sensors: List<Sensor>) {
         containerLayout.removeAllViews()
+
+        if (sensors.isEmpty()) {
+            val emptyView = TextView(requireContext()).apply {
+                text = getString(R.string.no_sensors)
+                textSize = 16f
+                setTextColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+                gravity = android.view.Gravity.CENTER
+                setPadding(0, 32, 0, 32)
+            }
+            containerLayout.addView(emptyView)
+            return
+        }
 
         sensors.forEach { sensor ->
             val itemView = layoutInflater.inflate(R.layout.item_system_status, containerLayout, false)
@@ -96,16 +153,18 @@ class ErrorsFragment : Fragment() {
             val name = itemView.findViewById<TextView>(R.id.systemName)
             val status = itemView.findViewById<TextView>(R.id.systemStatus)
 
-            name.text = sensor.name
+            // Переводим название
+            name.text = translateSensorName(sensor)
 
+            // Статус: онлайн или офлайн
             if (sensor.isOnline) {
                 icon.text = "✅"
-                status.text = "Исправен"
-                status.setTextColor(resources.getColor(android.R.color.holo_green_dark))
+                status.text = getString(R.string.sensor_online)
+                status.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark))
             } else {
                 icon.text = "❌"
-                status.text = "Неисправен, проверьте!"
-                status.setTextColor(resources.getColor(android.R.color.holo_red_dark))
+                status.text = getString(R.string.sensor_offline)
+                status.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
             }
 
             containerLayout.addView(itemView)

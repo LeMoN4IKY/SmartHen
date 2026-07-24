@@ -7,16 +7,24 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
+/**
+ * Фрагмент камеры.
+ * Управление камерой и записью через сервер.
+ * Поддерживает перевод на русский и английский.
+ */
 class CameraFragment : Fragment() {
 
+    // UI элементы
     private lateinit var cameraStatus: TextView
     private lateinit var toggleCameraBtn: Button
     private lateinit var recordBtn: Button
 
+    // Состояние
     private var isCameraOn = false
     private var isRecording = false
     private val api = RetrofitHelper.api
@@ -37,7 +45,6 @@ class CameraFragment : Fragment() {
         recordBtn = view.findViewById(R.id.recordBtn)
 
         // Загружаем текущий статус камеры с сервера
-        // GET http://<IP>:8000/camera/status
         lifecycleScope.launch {
             try {
                 val status = api.getCameraStatus()
@@ -46,6 +53,9 @@ class CameraFragment : Fragment() {
                 updateUI()
             } catch (e: Exception) {
                 e.printStackTrace()
+                // Если сервер не отвечает, показываем статус "неизвестно"
+                cameraStatus.text = getString(R.string.camera_unknown)
+                cameraStatus.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
             }
         }
 
@@ -54,20 +64,18 @@ class CameraFragment : Fragment() {
             lifecycleScope.launch {
                 try {
                     if (isCameraOn) {
-                        // POST http://<IP>:8000/camera/stop
                         api.stopCamera()
                         isCameraOn = false
                         isRecording = false
-                        Toast.makeText(requireContext(), "Камера остановлена", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.camera_stopped, Toast.LENGTH_SHORT).show()
                     } else {
-                        // POST http://<IP>:8000/camera/start
                         api.startCamera()
                         isCameraOn = true
-                        Toast.makeText(requireContext(), "Камера запущена", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.camera_started, Toast.LENGTH_SHORT).show()
                     }
                     updateUI()
                 } catch (e: Exception) {
-                    Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.camera_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -75,47 +83,49 @@ class CameraFragment : Fragment() {
         // ========== ЗАПИСЬ ==========
         recordBtn.setOnClickListener {
             if (!isCameraOn) {
-                Toast.makeText(requireContext(), "Сначала запустите камеру", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.camera_start_first, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             lifecycleScope.launch {
                 try {
                     if (isRecording) {
-                        // POST http://<IP>:8000/camera/stop_record
                         api.stopRecord()
                         isRecording = false
-                        Toast.makeText(requireContext(), "Запись остановлена", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.recording_stopped, Toast.LENGTH_SHORT).show()
                     } else {
-                        // POST http://<IP>:8000/camera/start_record
                         api.startRecord()
                         isRecording = true
-                        Toast.makeText(requireContext(), "Запись начата", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.recording_started, Toast.LENGTH_SHORT).show()
                     }
                     updateUI()
                 } catch (e: Exception) {
-                    Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.camera_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
+    /**
+     * Обновить UI в зависимости от состояния камеры
+     */
     private fun updateUI() {
         if (isCameraOn) {
-            cameraStatus.text = "📹 Камера запущена"
-            cameraStatus.setTextColor(resources.getColor(android.R.color.holo_green_dark))
-            toggleCameraBtn.text = "⏹ Остановить камеру"
+            cameraStatus.text = getString(R.string.camera_on_status)
+            cameraStatus.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark))
+            toggleCameraBtn.text = getString(R.string.camera_stop_btn)
         } else {
-            cameraStatus.text = "⏸ Камера остановлена"
-            cameraStatus.setTextColor(resources.getColor(android.R.color.darker_gray))
-            toggleCameraBtn.text = "▶ Запустить камеру"
-            recordBtn.text = "⏺ Начать запись"
+            cameraStatus.text = getString(R.string.camera_not)
+            cameraStatus.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+            toggleCameraBtn.text = getString(R.string.camera_start)
+            // Сбрасываем текст кнопки записи, если камера выключена
+            recordBtn.text = getString(R.string.lets_view)
         }
 
         if (isRecording) {
-            recordBtn.text = "⏹ Остановить запись"
+            recordBtn.text = getString(R.string.record_stop_btn)
         } else {
-            recordBtn.text = "⏺ Начать запись"
+            recordBtn.text = getString(R.string.lets_view)
         }
     }
 }

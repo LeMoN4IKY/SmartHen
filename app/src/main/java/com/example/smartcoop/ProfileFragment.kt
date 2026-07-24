@@ -77,6 +77,21 @@ class ProfileFragment : Fragment() {
         setupCoops()
         setupSubscription()
 
+        // Слушатель результата QR-сканера
+        parentFragmentManager.setFragmentResultListener("qr_scan_result", viewLifecycleOwner) { _, bundle ->
+            val qrCode = bundle.getString("qr_code")
+            if (!qrCode.isNullOrEmpty()) {
+                lifecycleScope.launch {
+                    val success = coopManager.addCoopBySerial(qrCode)
+                    if (success) {
+                        Toast.makeText(requireContext(), "✅ Курятник привязан!", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(requireContext(), "❌ Ошибка привязки: неверный QR-код", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+
         saveBtn.setOnClickListener { saveData() }
         renameCoopBtn.setOnClickListener { showRenameDialog() }
         scanQrBtn.setOnClickListener { scanQrCode() }
@@ -152,9 +167,12 @@ class ProfileFragment : Fragment() {
             }
             coopManager.selectedCoopId.collect { coopId ->
                 selectedCoopId = coopId
+                // Обновляем DataManager при смене курятника
+                DataManager.currentCoopId = coopId
                 if (coopId != null) {
                     val index = coopList.indexOfFirst { it.id == coopId }
                     if (index >= 0) coopSpinner.setSelection(index)
+                    Toast.makeText(requireContext(), "Выбран: ${coopList.find { it.id == coopId }?.name}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -166,7 +184,6 @@ class ProfileFragment : Fragment() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         coopSpinner.adapter = adapter
 
-        // Восстанавливаем выбор
         val currentIndex = coopList.indexOfFirst { it.id == selectedCoopId }
         if (currentIndex >= 0) {
             coopSpinner.setSelection(currentIndex)
@@ -186,7 +203,6 @@ class ProfileFragment : Fragment() {
     }
 
     private fun showRenameDialog() {
-        // Если selectedCoopId null, берём первый курятник из списка
         val coopId = selectedCoopId ?: coopList.firstOrNull()?.id
         val currentCoop = coopList.find { it.id == coopId }
 
@@ -218,19 +234,57 @@ class ProfileFragment : Fragment() {
             .show()
     }
 
+    // ============ QR-СКАНЕР ============
+
+    /**
+     * Запустить сканирование QR-кода
+     */
     private fun scanQrCode() {
-        // 🔧 ЗДЕСЬ БУДЕТ ЗАПУСК КАМЕРЫ ДЛЯ СКАНИРОВАНИЯ QR
-        // Пока заглушка
-        Toast.makeText(requireContext(), "📷 Сканирование QR (заглушка)", Toast.LENGTH_SHORT).show()
-        // После сканирования:
-        // val serial = "COOP-003"
-        // lifecycleScope.launch { coopManager.addCoopBySerial(serial) }
+        // Проверяем разрешение на камеру
+        if (ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.CAMERA),
+                101
+            )
+            return
+        }
+
+        // Показываем контейнер для сканера
+        val container = requireActivity().findViewById<FrameLayout>(R.id.fragment_container)
+        container?.visibility = View.VISIBLE
+
+        // Запускаем фрагмент сканера
+        val scannerFragment = QrScannerFragment()
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, scannerFragment)
+            .addToBackStack("qr_scanner")
+            .commit()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                scanQrCode()
+            } else {
+                Toast.makeText(requireContext(), "Нет доступа к камере", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // ============ ПОДПИСКА ============
 
     private fun setupSubscription() {
-        // 🔧 ЗДЕСЬ БУДЕТ ЗАПРОС К СЕРВЕРУ: GET /subscription/status
+        // Запрос к серверу: GET /subscription/status
         tariffStatus.text = "Тариф: Базовый (до 30.06.2026)"
     }
 
@@ -242,7 +296,6 @@ class ProfileFragment : Fragment() {
             .create()
 
         dialogView.findViewById<View>(R.id.cardBasic).setOnClickListener {
-            // 🔧 ЗДЕСЬ БУДЕТ ЗАПРОС К СЕРВЕРУ: POST /subscription/update
             Toast.makeText(requireContext(), "Выбран тариф: Базовый (300 ₽)", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
         }
@@ -259,7 +312,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun addCard() {
-        // 🔧 ЗДЕСЬ БУДЕТ ИНТЕГРАЦИЯ С ПЛАТЁЖНОЙ СИСТЕМОЙ
+        // Интеграция с платёжной системой
         Toast.makeText(requireContext(), "💳 Привязка карты (заглушка)", Toast.LENGTH_SHORT).show()
     }
 }

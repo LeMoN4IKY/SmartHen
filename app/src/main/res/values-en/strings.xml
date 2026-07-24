@@ -62,4 +62,37 @@
     <string name="menu_errors">Errors</string>
     <string name="menu_analytics">Analytics</string>
     <string name="menu_profile">Profile</string>
+    <string name="checking_systems">⏳ Checking...</string>
+    <string name="checking_systems_toast">🔍 Checking systems...</string>
+    <string name="sensors_offline_warning">⚠️ Found %d faulty sensors!</string>
+    <string name="all_systems_ok">✅ All systems are fine!</string>
+    <string name="check_error">❌ Check error: %s</string>
+    <string name="sensor_online">Online</string>
+    <string name="sensor_offline">Offline, check it!</string>
+    <string name="no_sensors">📭 No sensors connected</string>
+
+    <!-- CameraFragment -->
+    <string name="camera_on_status">📹 Camera is running</string>
+    <string name="camera_stopped">Camera stopped</string>
+    <string name="camera_started">Camera started</string>
+    <string name="camera_error">❌ Error: %s</string>
+    <string name="camera_start_first">Start the camera first</string>
+    <string name="recording_started">🔴 Recording started</string>
+    <string name="recording_stopped">⏹ Recording stopped</string>
+    <string name="camera_stop_btn">⏹ Stop Camera</string>
+    <string name="record_stop_btn">⏹ Stop Recording</string>
+    <string name="camera_unknown">❓ Status unknown</string>
+
+    <!-- Days of week (short) -->
+    <string name="monday_short">Mon</string>
+    <string name="tuesday_short">Tue</string>
+    <string name="wednesday_short">Wed</string>
+    <string name="thursday_short">Thu</string>
+    <string name="friday_short">Fri</string>
+    <string name="saturday_short">Sat</string>
+    <string name="sunday_short">Sun</string>
+
+    <!-- Analytics -->
+    <string name="eggs_chart_label">Eggs</string>
+    <string name="temperature_chart_label">Temperature, °C</string>
 </resources>

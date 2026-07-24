@@ -61,4 +61,37 @@
     <string name="menu_errors">Сбои</string>
     <string name="menu_analytics">Аналитика</string>
     <string name="menu_profile">Профиль</string>
+    <string name="checking_systems">⏳ Проверка...</string>
+    <string name="checking_systems_toast">🔍 Проверка систем...</string>
+    <string name="sensors_offline_warning">⚠️ Обнаружено %d неисправных датчиков!</string>
+    <string name="all_systems_ok">✅ Все системы исправны!</string>
+    <string name="check_error">❌ Ошибка проверки: %s</string>
+    <string name="sensor_online">Исправен</string>
+    <string name="sensor_offline">Неисправен, проверьте!</string>
+    <string name="no_sensors">📭 Нет подключенных датчиков</string>
+
+    <!-- CameraFragment -->
+    <string name="camera_on_status">📹 Камера запущена</string>
+    <string name="camera_stopped">Камера остановлена</string>
+    <string name="camera_started">Камера запущена</string>
+    <string name="camera_error">❌ Ошибка: %s</string>
+    <string name="camera_start_first">Сначала запустите камеру</string>
+    <string name="recording_started">🔴 Запись начата</string>
+    <string name="recording_stopped">⏹ Запись остановлена</string>
+    <string name="camera_stop_btn">⏹ Остановить камеру</string>
+    <string name="record_stop_btn">⏹ Остановить запись</string>
+    <string name="camera_unknown">❓ Статус неизвестен</string>
+
+    <!-- Дни недели (короткие) -->
+    <string name="monday_short">Пн</string>
+    <string name="tuesday_short">Вт</string>
+    <string name="wednesday_short">Ср</string>
+    <string name="thursday_short">Чт</string>
+    <string name="friday_short">Пт</string>
+    <string name="saturday_short">Сб</string>
+    <string name="sunday_short">Вс</string>
+
+    <!-- Аналитика -->
+    <string name="eggs_chart_label">Яйца</string>
+    <string name="temperature_chart_label">Температура, °C</string>
 </resources>
