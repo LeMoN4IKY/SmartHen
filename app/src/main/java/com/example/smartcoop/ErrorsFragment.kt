@@ -13,10 +13,13 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.smartcoop.data.Sensor
 import com.example.smartcoop.data.SensorManager
+import com.example.smartcoop.utils.ErrorHandler
 import kotlinx.coroutines.launch
 
 /**
  * Фрагмент диагностики систем
+ * Отображает статус всех датчиков (онлайн/офлайн)
+ * Автообновляется при смене курятника
  */
 class ErrorsFragment : Fragment() {
 
@@ -49,17 +52,33 @@ class ErrorsFragment : Fragment() {
 
         // Загрузка датчиков
         lifecycleScope.launch {
-            val coopId = DataManager.getCurrentCoopIdOrDefault()
-            sensorManager.loadSensors(coopId)
-            sensorManager.sensors.collect { sensors ->
-                updateErrorsUI(sensors)
+            try {
+                val coopId = DataManager.getCurrentCoopIdOrDefault()
+                sensorManager.loadSensors(coopId)
+                sensorManager.sensors.collect { sensors ->
+                    updateErrorsUI(sensors)
+                }
+            } catch (e: Exception) {
+                ErrorHandler.handle(requireContext(), e, "⚠️ Не удалось загрузить датчики")
+            }
+        }
+
+        // ===== АВТООБНОВЛЕНИЕ ПРИ СМЕНЕ КУРЯТНИКА =====
+        lifecycleScope.launch {
+            CoopManager(requireContext()).selectedCoopId.collect { coopId ->
+                if (coopId != null) {
+                    try {
+                        sensorManager.loadSensors(coopId)
+                    } catch (e: Exception) {
+                        ErrorHandler.handle(requireContext(), e, "⚠️ Ошибка загрузки")
+                    }
+                }
             }
         }
     }
 
-    /**
-     * Перевод названия датчика
-     */
+    // ===== ПЕРЕВОД НАЗВАНИЙ ДАТЧИКОВ =====
+
     private fun translateSensorName(sensor: Sensor): String {
         return when {
             sensor.name.contains("Вода", ignoreCase = true) ||
@@ -84,9 +103,8 @@ class ErrorsFragment : Fragment() {
         }
     }
 
-    /**
-     * Запуск проверки систем
-     */
+    // ===== ЗАПУСК ПРОВЕРКИ =====
+
     private fun startSystemCheck() {
         isChecking = true
         checkAllBtn.isEnabled = false
@@ -97,7 +115,6 @@ class ErrorsFragment : Fragment() {
                 Toast.makeText(requireContext(), R.string.checking_systems_toast, Toast.LENGTH_SHORT).show()
 
                 val results = sensorManager.checkAllSensors()
-
                 updateErrorsUI(sensorManager.sensors.value)
 
                 val offlineCount = results.count { !it.isOnline }
@@ -108,19 +125,10 @@ class ErrorsFragment : Fragment() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.all_systems_ok,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(requireContext(), R.string.all_systems_ok, Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.check_error, e.message ?: ""),
-                    Toast.LENGTH_LONG
-                ).show()
+                ErrorHandler.handle(requireContext(), e, "❌ Ошибка проверки систем")
             } finally {
                 isChecking = false
                 checkAllBtn.isEnabled = true
@@ -129,9 +137,8 @@ class ErrorsFragment : Fragment() {
         }
     }
 
-    /**
-     * Обновление UI списка датчиков
-     */
+    // ===== ОБНОВЛЕНИЕ UI =====
+
     private fun updateErrorsUI(sensors: List<Sensor>) {
         containerLayout.removeAllViews()
 
@@ -153,10 +160,8 @@ class ErrorsFragment : Fragment() {
             val name = itemView.findViewById<TextView>(R.id.systemName)
             val status = itemView.findViewById<TextView>(R.id.systemStatus)
 
-            // Переводим название
             name.text = translateSensorName(sensor)
 
-            // Статус: онлайн или офлайн
             if (sensor.isOnline) {
                 icon.text = "✅"
                 status.text = getString(R.string.sensor_online)

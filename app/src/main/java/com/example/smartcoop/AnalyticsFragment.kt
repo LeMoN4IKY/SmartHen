@@ -11,6 +11,7 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.smartcoop.utils.ErrorHandler
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.XAxis
@@ -94,9 +95,8 @@ class AnalyticsFragment : Fragment() {
         loadPeriod("week")
     }
 
-    /**
-     * Диалог выбора даты
-     */
+    // ===== ДИАЛОГ ВЫБОРА ДАТЫ =====
+
     private fun showDatePicker() {
         DatePickerDialog(
             requireContext(),
@@ -110,26 +110,30 @@ class AnalyticsFragment : Fragment() {
         ).show()
     }
 
-    /**
-     * Загрузка произвольной недели
-     */
+    // ===== ЗАГРУЗКА ПРОИЗВОЛЬНОЙ НЕДЕЛИ =====
+
     private fun loadCustomWeek(selectedDate: Calendar) {
         lifecycleScope.launch(Dispatchers.IO) {
-            val coopId = DataManager.getCurrentCoopIdOrDefault()
-            val dates = getWeekDates(selectedDate)
-            currentDates = dates
-            val eggs = getEggsForDates(coopId, dates)
-            val temps = getTemperaturesForDates(coopId, TEMP_SENSOR_ID, dates)
-            withContext(Dispatchers.Main) {
-                updateCharts(eggs, temps, dates, "week")
-                highlightSelectedDay(selectedDate, dates)
+            try {
+                val coopId = DataManager.getCurrentCoopIdOrDefault()
+                val dates = getWeekDates(selectedDate)
+                currentDates = dates
+                val eggs = getEggsForDates(coopId, dates)
+                val temps = getTemperaturesForDates(coopId, TEMP_SENSOR_ID, dates)
+                withContext(Dispatchers.Main) {
+                    updateCharts(eggs, temps, dates, "week")
+                    highlightSelectedDay(selectedDate, dates)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    ErrorHandler.handle(requireContext(), e, "❌ Не удалось загрузить аналитику")
+                }
             }
         }
     }
 
-    /**
-     * Загрузка периода: неделя/месяц/год
-     */
+    // ===== ЗАГРУЗКА ПЕРИОДА =====
+
     private fun loadPeriod(period: String) {
         currentPeriod = period
         val coopId = DataManager.getCurrentCoopIdOrDefault()
@@ -137,41 +141,59 @@ class AnalyticsFragment : Fragment() {
         when (period) {
             "week" -> {
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val dates = getLastDays(7)
-                    currentDates = dates
-                    val eggs = getEggsForDates(coopId, dates)
-                    val temps = getTemperaturesForDates(coopId, TEMP_SENSOR_ID, dates)
-                    withContext(Dispatchers.Main) {
-                        updateCharts(eggs, temps, dates, "week")
-                        clearHighlight()
-                        tempTitle.visibility = View.VISIBLE
-                        tempChart.visibility = View.VISIBLE
+                    try {
+                        val dates = getLastDays(7)
+                        currentDates = dates
+                        val eggs = getEggsForDates(coopId, dates)
+                        val temps = getTemperaturesForDates(coopId, TEMP_SENSOR_ID, dates)
+                        withContext(Dispatchers.Main) {
+                            updateCharts(eggs, temps, dates, "week")
+                            clearHighlight()
+                            tempTitle.visibility = View.VISIBLE
+                            tempChart.visibility = View.VISIBLE
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            ErrorHandler.handle(requireContext(), e, "❌ Не удалось загрузить неделю")
+                        }
                     }
                 }
             }
             "month" -> {
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val dates = getLastDays(30)
-                    currentDates = dates
-                    val eggs = getEggsForDates(coopId, dates)
-                    val temps = getTemperaturesForDates(coopId, TEMP_SENSOR_ID, dates)
-                    withContext(Dispatchers.Main) {
-                        updateCharts(eggs, temps, dates, "month")
-                        clearHighlight()
-                        tempTitle.visibility = View.VISIBLE
-                        tempChart.visibility = View.VISIBLE
+                    try {
+                        val dates = getLastDays(30)
+                        currentDates = dates
+                        val eggs = getEggsForDates(coopId, dates)
+                        val temps = getTemperaturesForDates(coopId, TEMP_SENSOR_ID, dates)
+                        withContext(Dispatchers.Main) {
+                            updateCharts(eggs, temps, dates, "month")
+                            clearHighlight()
+                            tempTitle.visibility = View.VISIBLE
+                            tempChart.visibility = View.VISIBLE
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            ErrorHandler.handle(requireContext(), e, "❌ Не удалось загрузить месяц")
+                        }
                     }
                 }
             }
             "year" -> {
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val monthlyEggs = getMonthlyEggStats(coopId)
-                    val monthlyTemps = getMonthlyTemperatures(coopId, TEMP_SENSOR_ID)
-                    withContext(Dispatchers.Main) {
-                        updateYearCharts(monthlyEggs, monthlyTemps)
-                        clearHighlight()
-                        tempTitle.visibility = View.VISIBLE
-                        tempChart.visibility = View.VISIBLE
+                    try {
+                        val monthlyEggs = getMonthlyEggStats(coopId)
+                        val monthlyTemps = getMonthlyTemperatures(coopId, TEMP_SENSOR_ID)
+                        withContext(Dispatchers.Main) {
+                            updateYearCharts(monthlyEggs, monthlyTemps)
+                            clearHighlight()
+                            tempTitle.visibility = View.VISIBLE
+                            tempChart.visibility = View.VISIBLE
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            ErrorHandler.handle(requireContext(), e, "❌ Не удалось загрузить год")
+                        }
                     }
                 }
             }
@@ -296,9 +318,8 @@ class AnalyticsFragment : Fragment() {
         }
     }
 
-    /**
-     * Обновить графики (неделя/месяц)
-     */
+    // ===== ГРАФИКИ =====
+
     private fun updateCharts(
         eggs: Map<String, Int>,
         temps: Map<String, Float>,
@@ -310,14 +331,13 @@ class AnalyticsFragment : Fragment() {
         val axisColor = if (isDarkTheme) Color.LTGRAY else Color.DKGRAY
         val gridColor = if (isDarkTheme) Color.DKGRAY else Color.LTGRAY
 
-        // Подписи для оси X
         val labels = if (period == "week") {
             dates.map { getShortDayName(it) }
         } else {
             dates.map { it.substring(5) }
         }
 
-        // ===== ГРАФИК ЯИЦ =====
+        // График яиц
         val eggEntries = dates.mapIndexed { index, date ->
             BarEntry(index.toFloat(), eggs[date]?.toFloat() ?: 0f)
         }
@@ -343,7 +363,7 @@ class AnalyticsFragment : Fragment() {
         barChart.animateY(1000)
         barChart.invalidate()
 
-        // ===== ГРАФИК ТЕМПЕРАТУРЫ =====
+        // График температуры
         val tempEntries = dates.mapIndexed { index, date ->
             Entry(index.toFloat(), temps[date] ?: 0f)
         }
@@ -376,7 +396,7 @@ class AnalyticsFragment : Fragment() {
         tempChart.animateXY(1000, 1000)
         tempChart.invalidate()
 
-        // ===== СТАТИСТИКА =====
+        // Статистика
         val total = eggs.values.sum()
         val average = if (eggs.isNotEmpty()) total / eggs.size else 0
         val best = eggs.values.maxOrNull() ?: 0
@@ -391,9 +411,6 @@ class AnalyticsFragment : Fragment() {
         bestDayText.text = "🏆 Лучший день: $best яиц"
     }
 
-    /**
-     * Обновить графики для года
-     */
     private fun updateYearCharts(eggs: Map<String, Int>, temps: Map<String, Float>) {
         val isDarkTheme = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val textColor = if (isDarkTheme) Color.WHITE else Color.BLACK
@@ -402,7 +419,7 @@ class AnalyticsFragment : Fragment() {
 
         val monthNames = listOf("Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек")
 
-        // ===== ГРАФИК ЯИЦ =====
+        // График яиц
         val eggEntries = monthNames.mapIndexed { index, month ->
             BarEntry(index.toFloat(), eggs[month]?.toFloat() ?: 0f)
         }
@@ -427,7 +444,7 @@ class AnalyticsFragment : Fragment() {
         barChart.animateY(1000)
         barChart.invalidate()
 
-        // ===== ГРАФИК ТЕМПЕРАТУРЫ =====
+        // График температуры
         val tempEntries = monthNames.mapIndexed { index, month ->
             Entry(index.toFloat(), temps[month] ?: 0f)
         }
@@ -459,7 +476,7 @@ class AnalyticsFragment : Fragment() {
         tempChart.animateXY(1000, 1000)
         tempChart.invalidate()
 
-        // ===== СТАТИСТИКА =====
+        // Статистика
         val total = eggs.values.sum()
         val average = if (eggs.isNotEmpty()) total / eggs.size else 0
         val best = eggs.values.maxOrNull() ?: 0
@@ -469,9 +486,8 @@ class AnalyticsFragment : Fragment() {
         bestDayText.text = "🏆 Лучший месяц: $best яиц"
     }
 
-    /**
-     * Подсветка выбранного дня — тёмно-зелёный цвет
-     */
+    // ===== ПОДСВЕТКА ВЫБРАННОГО ДНЯ =====
+
     private fun highlightSelectedDay(selected: Calendar, dates: List<String>) {
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val selectedDateStr = format.format(selected.time)
@@ -507,9 +523,6 @@ class AnalyticsFragment : Fragment() {
         }
     }
 
-    /**
-     * Сбросить выделение
-     */
     private fun clearHighlight() {
         // Возвращаем оранжевый цвет
         val barDataSet = barChart.data?.getDataSetByIndex(0) as? BarDataSet
@@ -538,9 +551,8 @@ class AnalyticsFragment : Fragment() {
         tempChart.highlightValue(null)
     }
 
-    /**
-     * Название дня недели на текущем языке
-     */
+    // ===== ПЕРЕВОД ДНЕЙ НЕДЕЛИ =====
+
     private fun getShortDayName(dateStr: String): String {
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         return try {

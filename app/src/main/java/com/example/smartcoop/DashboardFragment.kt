@@ -20,10 +20,17 @@ import androidx.lifecycle.lifecycleScope
 import com.example.smartcoop.data.Sensor
 import com.example.smartcoop.data.SensorManager
 import com.example.smartcoop.data.SensorType
+import com.example.smartcoop.utils.ErrorHandler
 import kotlinx.coroutines.launch
 
 /**
  * Главный экран с датчиками, анимацией курицы и кнопкой сбора яиц
+ *
+ * Особенности:
+ * - Автообновление каждые 5 секунд
+ * - Обновление при смене курятника
+ * - Кэширование данных для офлайн-режима
+ * - Индикатор "Данные из кэша"
  */
 class DashboardFragment : Fragment() {
 
@@ -43,7 +50,7 @@ class DashboardFragment : Fragment() {
     private val updateHandler = Handler(Looper.getMainLooper())
     private var isUpdating = false
 
-    // Обновление каждые 5 секунд
+    // ===== ЗАДАЧА ДЛЯ ПЕРИОДИЧЕСКОГО ОБНОВЛЕНИЯ (каждые 5 секунд) =====
     private val updateRunnable = object : Runnable {
         override fun run() {
             if (isUpdating) {
@@ -51,8 +58,9 @@ class DashboardFragment : Fragment() {
                     try {
                         val coopId = DataManager.getCurrentCoopIdOrDefault()
                         sensorManager.loadSensors(coopId)
+                        updateCacheIndicator()
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        ErrorHandler.handle(requireContext(), e, "⚠️ Ошибка обновления")
                     }
                 }
                 updateHandler.postDelayed(this, 5000)
@@ -71,6 +79,7 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Инициализация
         sensorManager = SensorManager(requireContext())
         coopManager = CoopManager(requireContext())
 
@@ -80,7 +89,7 @@ class DashboardFragment : Fragment() {
 
         mediaPlayer = android.media.MediaPlayer.create(requireContext(), R.raw.chicken_hurt1)
 
-        // Кнопка "Собрать яйца"
+        // ===== КНОПКА "СОБРАТЬ ЯЙЦА" =====
         val collectBtn = view.findViewById<Button>(R.id.collectEggsBtn)
         collectBtn.setOnClickListener {
             if (::mediaPlayer.isInitialized) {
@@ -92,46 +101,81 @@ class DashboardFragment : Fragment() {
                 try {
                     val collected = sensorManager.collectEggs()
                     if (collected > 0) {
-                        Toast.makeText(
-                            requireContext(),
-                            "🥚 Собрано $collected яиц!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(requireContext(), "🥚 Собрано $collected яиц!", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(
-                            requireContext(),
-                            "📭 Нет яиц для сбора",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Toast.makeText(requireContext(), "📭 Нет яиц для сбора", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
-                    Toast.makeText(
-                        requireContext(),
-                        "❌ Ошибка сбора яиц: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    ErrorHandler.handle(requireContext(), e, "❌ Ошибка сбора яиц")
                 }
             }
         }
 
-        // Первичная загрузка
+        // ===== ПЕРВИЧНАЯ ЗАГРУЗКА =====
         lifecycleScope.launch {
-            val coopId = DataManager.getCurrentCoopIdOrDefault()
-            sensorManager.loadSensors(coopId)
-            sensorManager.sensors.collect { sensors ->
-                updateSensorsUI(sensors)
+            try {
+                val coopId = DataManager.getCurrentCoopIdOrDefault()
+                sensorManager.loadSensors(coopId)
+                sensorManager.sensors.collect { sensors ->
+                    updateSensorsUI(sensors)
+                    updateCacheIndicator()
+                }
+            } catch (e: Exception) {
+                ErrorHandler.handle(requireContext(), e, "⚠️ Не удалось загрузить датчики")
             }
         }
 
-        // Запуск автообновления
+        // ===== АВТООБНОВЛЕНИЕ ПРИ СМЕНЕ КУРЯТНИКА =====
+        lifecycleScope.launch {
+            coopManager.selectedCoopId.collect { coopId ->
+                if (coopId != null) {
+                    try {
+                        sensorManager.loadSensors(coopId)
+                        updateCacheIndicator()
+                    } catch (e: Exception) {
+                        ErrorHandler.handle(requireContext(), e, "⚠️ Ошибка загрузки")
+                    }
+                }
+            }
+        }
+
+        // ===== ЗАПУСК АВТООБНОВЛЕНИЯ (каждые 5 секунд) =====
         isUpdating = true
         updateRunnable.run()
     }
 
+    // ===== ИНДИКАТОР КЭША =====
+
     /**
-     * Перевод названия датчика
+     * Показывает пользователю, откуда взяты данные (сервер или кэш)
      */
+    private fun updateCacheIndicator() {
+        val isFromCache = sensorManager.isDataFromCache()
+        val lastUpdate = DataManager.getLastUpdateTimeString()
+
+        warningMessage.visibility = View.VISIBLE
+
+        warningMessage.text = if (isFromCache) {
+            "📦 Данные из кэша (обновлено: $lastUpdate)"
+        } else {
+            if (DataManager.isDataFresh()) {
+                "🟢 Данные с сервера (обновлено: $lastUpdate)"
+            } else {
+                "🔄 Данные загружаются..."
+            }
+        }
+
+        warningMessage.setTextColor(
+            if (isFromCache) {
+                ContextCompat.getColor(requireContext(), android.R.color.holo_orange_dark)
+            } else {
+                ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark)
+            }
+        )
+    }
+
+    // ===== ПЕРЕВОД НАЗВАНИЙ ДАТЧИКОВ =====
+
     private fun translateSensorName(sensor: Sensor): String {
         return when {
             sensor.name.contains("Вода", ignoreCase = true) ||
@@ -152,34 +196,12 @@ class DashboardFragment : Fragment() {
             sensor.name.contains("Накоплено яиц", ignoreCase = true) ||
                     sensor.name.contains("Eggs", ignoreCase = true) -> getString(R.string.eggs_collected)
 
-            sensor.name.contains("Вентиляция", ignoreCase = true) ||
-                    sensor.name.contains("Ventilation", ignoreCase = true) -> getString(R.string.ventilation)
-
-            sensor.name.contains("Кормушка", ignoreCase = true) ||
-                    sensor.name.contains("Feeder", ignoreCase = true) -> getString(R.string.feeder)
-
-            sensor.name.contains("Автопоилка", ignoreCase = true) ||
-                    sensor.name.contains("Waterer", ignoreCase = true) -> getString(R.string.waterer)
-
-            sensor.name.contains("Датчик воздуха", ignoreCase = true) ||
-                    sensor.name.contains("Air sensor", ignoreCase = true) -> getString(R.string.air_sensor)
-
-            sensor.name.contains("Отопитель", ignoreCase = true) ||
-                    sensor.name.contains("Heater", ignoreCase = true) -> getString(R.string.heater)
-
-            sensor.name.contains("Датчик воды", ignoreCase = true) ||
-                    sensor.name.contains("Water sensor", ignoreCase = true) -> getString(R.string.water_sensor)
-
-            sensor.name.contains("Датчик корма", ignoreCase = true) ||
-                    sensor.name.contains("Feed sensor", ignoreCase = true) -> getString(R.string.feed_sensor)
-
             else -> sensor.name
         }
     }
 
-    /**
-     * Обновление UI датчиков
-     */
+    // ===== ОБНОВЛЕНИЕ UI =====
+
     private fun updateSensorsUI(sensors: List<Sensor>) {
         sensorsContainer.removeAllViews()
 
@@ -258,7 +280,7 @@ class DashboardFragment : Fragment() {
         name.text = translateSensorName(sensor)
         progress.visibility = View.GONE
 
-        // Статус отопления зависит от температуры
+        // Статус отопления зависит от температуры (обновляется автоматически)
         lifecycleScope.launch {
             sensorManager.sensors.collect { sensors ->
                 val tempSensor = sensors.find { it.type == SensorType.TEMPERATURE }
@@ -308,6 +330,7 @@ class DashboardFragment : Fragment() {
         val value = card.findViewById<TextView>(R.id.sensorValue)
         val progress = card.findViewById<ProgressBar>(R.id.sensorProgress)
 
+        // Иконка по типу датчика
         icon.text = when (sensor.type) {
             SensorType.WATER -> "💧"
             SensorType.FEED -> "🌽"
@@ -321,6 +344,7 @@ class DashboardFragment : Fragment() {
         val intValue = sensor.currentValue.toInt()
         value.text = "$intValue${sensor.unit}"
 
+        // Прогресс-бар (для температуры не показываем)
         if (sensor.type == SensorType.TEMPERATURE) {
             progress.visibility = View.GONE
         } else {
@@ -340,7 +364,7 @@ class DashboardFragment : Fragment() {
         return card
     }
 
-    // ===== АНИМАЦИЯ =====
+    // ===== АНИМАЦИЯ КУРИЦЫ =====
 
     private fun startEggLayingAnimation() {
         chickenRun.visibility = View.VISIBLE
@@ -361,6 +385,8 @@ class DashboardFragment : Fragment() {
             }
             .start()
     }
+
+    // ===== ЖИЗНЕННЫЙ ЦИКЛ =====
 
     override fun onDestroy() {
         super.onDestroy()

@@ -10,12 +10,17 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Менеджер датчиков — работа с данными датчиков через сервер
+ * Поддерживает кэширование для офлайн-режима
  */
 class SensorManager(private val context: Context) {
 
     // Поток с текущим списком датчиков
     private val _sensors = MutableStateFlow<List<Sensor>>(emptyList())
     val sensors: StateFlow<List<Sensor>> = _sensors
+
+    // Флаг, показывающий, что данные из кэша (для UI)
+    private val _isFromCache = MutableStateFlow(false)
+    val isFromCache: StateFlow<Boolean> = _isFromCache
 
     // ID текущего курятника — берём из DataManager
     private var currentCoopId: String
@@ -26,6 +31,7 @@ class SensorManager(private val context: Context) {
 
     /**
      * Загрузить датчики для текущего курятника
+     * Используется для автообновления
      */
     suspend fun loadSensors() {
         loadSensors(currentCoopId)
@@ -33,15 +39,38 @@ class SensorManager(private val context: Context) {
 
     /**
      * Загрузить датчики для указанного курятника
+     * При ошибке показывает кэшированные данные
      */
     suspend fun loadSensors(coopId: String) {
         currentCoopId = coopId
         try {
+            // Запрос к серверу
             val response = api.getSensors(coopId)
             _sensors.value = response
+            _isFromCache.value = false  // Данные с сервера
+
+            // Сохраняем в кэш
+            DataManager.cachedSensors = response
+            DataManager.lastUpdateTime = System.currentTimeMillis()
+
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Если есть кэш — показываем его
+            if (DataManager.cachedSensors.isNotEmpty()) {
+                _sensors.value = DataManager.cachedSensors
+                _isFromCache.value = true  // Данные из кэша
+            } else {
+                // Нет кэша — пробрасываем ошибку
+                _isFromCache.value = false
+                throw e
+            }
         }
+    }
+
+    /**
+     * Проверить, показываются ли данные из кэша
+     */
+    fun isDataFromCache(): Boolean {
+        return _isFromCache.value
     }
 
     /**
@@ -55,9 +84,11 @@ class SensorManager(private val context: Context) {
             if (index >= 0) {
                 list[index] = list[index].copy(currentValue = newValue)
                 _sensors.value = list
+                // Обновляем кэш
+                DataManager.cachedSensors = list
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            throw e
         }
     }
 
@@ -84,7 +115,7 @@ class SensorManager(private val context: Context) {
             }
             response
         } catch (e: Exception) {
-            emptyList()
+            throw e
         }
     }
 
@@ -115,12 +146,13 @@ class SensorManager(private val context: Context) {
             if (index >= 0) {
                 list[index] = list[index].copy(currentValue = 0f)
                 _sensors.value = list
+                // Обновляем кэш
+                DataManager.cachedSensors = list
             }
 
             return collectedCount
         } catch (e: Exception) {
-            e.printStackTrace()
-            return 0
+            throw e
         }
     }
 
@@ -131,7 +163,7 @@ class SensorManager(private val context: Context) {
         return try {
             api.getSensorHistory(currentCoopId, sensorId, days)
         } catch (e: Exception) {
-            emptyList()
+            throw e
         }
     }
 }
