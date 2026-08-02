@@ -1,49 +1,48 @@
 package com.example.smartcoop
 
 import android.content.Context
-import androidx.work.Worker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.smartcoop.data.SmartCoopRepository
 import kotlinx.coroutines.runBlocking
-import kotlin.random.Random
+import com.example.smartcoop.data.SensorManager
+import com.example.smartcoop.data.SensorType
 
-class NotificationWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
+/**
+ * Worker для планирования уведомлений.
+ * Отправляет уведомления о состоянии курятника в фоновом режиме.
+ * Данные получает с сервера через SensorManager.
+ */
+class NotificationWorker(
+    context: Context,
+    params: WorkerParameters
+) : CoroutineWorker(context, params) {
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         return try {
-            val repository = SmartCoopRepository(applicationContext)
-            val notifier = NotificationHelper(applicationContext)
+            val context = applicationContext
+            val notifier = NotificationHelper(context)
+            val sensorManager = SensorManager(context)
 
-            val water = Random.nextInt(30, 100)
-            val feed = Random.nextInt(20, 100)
-            val todayEggs = runBlocking { getTodayEggs(repository) }
+            // Загружаем актуальные данные с сервера
+            val coopId = DataManager.getCurrentCoopIdOrDefault()
+            sensorManager.loadSensors(coopId)
 
+            // Получаем значения датчиков
+            val sensors = sensorManager.sensors.value
+            val water = sensors.find { it.type == SensorType.WATER }?.currentValue?.toInt() ?: 0
+            val feed = sensors.find { it.type == SensorType.FEED }?.currentValue?.toInt() ?: 0
+            val eggs = sensors.find { it.type == SensorType.EGG_COUNT }?.currentValue?.toInt() ?: 0
+
+            // Отправляем уведомление
             notifier.sendNotification(
-                "🌅 Умный курятник",
-                "Вода: $water% | Корм: $feed% | Яиц сегодня: ${todayEggs.toInt()} шт"
+                "🐔 SmartHen — состояние курятника",
+                "💧 Вода: $water% | 🌽 Корм: $feed% | 🥚 Яиц: $eggs шт"
             )
-
-            if (feed <= 10) {
-                notifier.sendNotification("⚠️ Корм заканчивается!", "Осталось $feed% корма!")
-            }
-            if (water <= 10) {
-                notifier.sendNotification("⚠️ Вода заканчивается!", "Осталось $water% воды!")
-            }
 
             Result.success()
         } catch (e: Exception) {
+            e.printStackTrace()
             Result.retry()
         }
-    }
-
-    private suspend fun getTodayEggs(repository: SmartCoopRepository): Int {
-        val today = getTodayDate()
-        val eggs = repository.getLast7DaysEggs()
-        return eggs.find { it.first == today }?.second ?: 0
-    }
-
-    private fun getTodayDate(): String {
-        val format = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-        return format.format(java.util.Date())
     }
 }

@@ -14,7 +14,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.work.*
-import com.example.smartcoop.data.DatabaseCleanupManager
 import com.example.smartcoop.utils.LocaleHelper
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import java.util.concurrent.TimeUnit
@@ -85,8 +84,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Очистка базы данных
-        val cleanupManager = DatabaseCleanupManager(this)
-        cleanupManager.startPeriodicCleanup()
+//        val cleanupManager = DatabaseCleanupManager(this)
+//        cleanupManager.startPeriodicCleanup()
 
         // Уведомления (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
