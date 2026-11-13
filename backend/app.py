@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import base64
 import hashlib
 import hmac
 import json
@@ -13,7 +14,7 @@ import sqlite3
 import time
 from typing import Callable, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -322,6 +323,63 @@ def create_app(database_path: str | None = None, clock: Callable[[], float] = ti
             device_access(db, house_id, device_id, owner)
             return [dict(r) for r in db.execute('''SELECT device_id,sensor_id,type,unit,value,observed_at,received_at FROM readings
                 WHERE device_id=? AND sensor_id=? AND observed_at>=? ORDER BY observed_at DESC LIMIT 1000''', (device_id, sensor_id, since))]
+
+    @api.get('/api/v1/houses/{house_id}/history-page')
+    def history_page(
+        house_id: str,
+        device_id: str,
+        sensor_id: str,
+        since: int = Query(default=0, ge=0, le=9223372036854775807),
+        until: int | None = Query(default=None, ge=0, le=9223372036854775807),
+        limit: int = Query(default=200, ge=1, le=1000),
+        cursor: str | None = Query(default=None, max_length=2048),
+        owner=Depends(user),
+    ):
+        if until is not None and until < since:
+            raise HTTPException(422, 'until must be greater than or equal to since')
+        scope = token_hash(json.dumps([house_id, device_id, sensor_id, since, until], separators=(',', ':')))
+        with database.connect() as db:
+            # Authorization always precedes cursor processing; a cursor never conveys access rights.
+            device_access(db, house_id, device_id, owner)
+            conditions = 'device_id=? AND sensor_id=? AND observed_at>=?'
+            parameters = [device_id, sensor_id, since]
+            if until is not None:
+                conditions += ' AND observed_at<=?'
+                parameters.append(until)
+            boundary = None
+            if cursor is not None:
+                try:
+                    decoded = json.loads(base64.b64decode(cursor, altchars=b'-_', validate=True))
+                    if not isinstance(decoded, dict) or set(decoded) != {'v', 'scope', 'before', 'snapshot'}:
+                        raise ValueError()
+                    boundary = decoded['before']
+                    snapshot = decoded['snapshot']
+                    if decoded['v'] != 1 or decoded['scope'] != scope or not isinstance(boundary, list) or len(boundary) != 2:
+                        raise ValueError()
+                    if any(type(number) is not int or not 0 < number <= 9223372036854775807 for number in [*boundary, snapshot]):
+                        raise ValueError()
+                    if boundary[1] > snapshot or boundary[0] < since or (until is not None and boundary[0] > until):
+                        raise ValueError()
+                except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
+                    raise HTTPException(422, 'Invalid cursor for this history query')
+            else:
+                # Freeze the inserted-row high-water mark: new live/backfilled samples appear on refresh,
+                # not halfway through pagination. No database connection is held between page requests.
+                snapshot = db.execute(f'SELECT COALESCE(MAX(id),0) FROM readings WHERE {conditions}', parameters).fetchone()[0]
+            conditions += ' AND id<=?'
+            parameters.append(snapshot)
+            if boundary is not None:
+                conditions += ' AND (observed_at<? OR (observed_at=? AND id<?))'
+                parameters.extend([boundary[0], boundary[0], boundary[1]])
+            rows = db.execute(f'''SELECT id,device_id,sensor_id,type,unit,value,observed_at,received_at FROM readings
+                WHERE {conditions} ORDER BY observed_at DESC,id DESC LIMIT ?''', [*parameters, limit+1]).fetchall()
+            page = rows[:limit]
+            next_cursor = None
+            if len(rows) > limit:
+                last = page[-1]
+                encoded = json.dumps(dict(v=1, scope=scope, before=[last['observed_at'], last['id']], snapshot=snapshot), separators=(',', ':')).encode()
+                next_cursor = base64.urlsafe_b64encode(encoded).decode()
+            return dict(points=[{key: row[key] for key in row.keys() if key != 'id'} for row in page], next_cursor=next_cursor)
 
     def command_public(row):
         result = dict(row)

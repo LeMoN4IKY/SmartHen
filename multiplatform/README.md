@@ -12,7 +12,7 @@ Use JDK 25 (Android Studio's bundled runtime on the development machine), Androi
 ```
 
 The Android APK is produced at `androidApp/build/outputs/apk/debug/androidApp-debug.apk`.
-The iOS compilation checks shared Kotlin code. `iosApp/SmartHenApp.swift` is the host entry point; the runnable Xcode host and simulator verification are still in progress.
+The shared Kotlin module and complete iOS simulator application have built successfully. Open `iosApp/SmartHen.xcodeproj` and select the SmartHen scheme. Simulator UI and physical-device verification remain separate checks; see `iosApp/README.md`.
 
 ## Current integration
 

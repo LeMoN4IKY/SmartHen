@@ -29,11 +29,12 @@ class MonitorViewModel(
     private val client: HttpClient = platformClient(),
     private val clock: () -> Long = ::nowSeconds,
     accountId: String? = null,
+    allowLocalHttp: Boolean = false,
     tokenProvider: () -> String? = { null },
 ) : ViewModel() {
     private val sessionToken = tokenProvider()
     private val repository = SensorRepository(store, client)
-    private val authenticated = accountId?.let { V1SensorRepository(store, client, it, tokenProvider = { sessionToken }) }
+    private val authenticated = accountId?.let { V1SensorRepository(store, client, it, allowLocalHttp = allowLocalHttp, tokenProvider = { sessionToken }) }
     private val mutableState = MutableStateFlow(MonitorUiState(nowSeconds = clock()))
     val state: StateFlow<MonitorUiState> = mutableState.asStateFlow()
     private var polling: Job? = null

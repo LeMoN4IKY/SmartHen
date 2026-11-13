@@ -9,7 +9,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
 }
 dependencies {
     implementation(project(":shared"))

@@ -11,6 +11,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val store = AndroidStore(applicationContext)
-        setContent { App(store, AndroidSessionStore(applicationContext)) }
+        setContent { App(store, AndroidSessionStore(applicationContext), allowLocalHttp = BuildConfig.DEBUG) }
     }
 }

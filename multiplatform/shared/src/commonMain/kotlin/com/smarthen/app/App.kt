@@ -17,10 +17,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
-private enum class Page { HOME, SETTINGS, ACCOUNT, HOUSES }
+private enum class Page { HOME, SETTINGS, ACCOUNT, HOUSES, ANALYTICS }
 
 @Composable
-fun App(store: LocalStore, sessions: SessionStore, active: Boolean = true) {
+fun App(store: LocalStore, sessions: SessionStore, active: Boolean = true, allowLocalHttp: Boolean = false) {
     var language by remember { mutableStateOf(store.get("language") ?: "ru") }
     var theme by remember { mutableStateOf(store.get("theme") ?: "system") }
     var server by remember { mutableStateOf(store.get("server") ?: "") }
@@ -47,7 +47,7 @@ fun App(store: LocalStore, sessions: SessionStore, active: Boolean = true) {
         )
     val resources = viewModel<ApiResourcesViewModel> { ApiResourcesViewModel() }
     val accountClient = resources.client
-    val account = viewModel<AccountViewModel> { AccountViewModel(ApiAuthRepository(accountClient), sessions) }
+    val account = viewModel<AccountViewModel> { AccountViewModel(ApiAuthRepository(accountClient, allowLocalHttp), sessions) }
     LaunchedEffect(server) { account.configure(server) }
     val accountState by account.state.collectAsState()
     val currentAccount = accountState.takeIf { it.server == server }?.user
@@ -58,10 +58,16 @@ fun App(store: LocalStore, sessions: SessionStore, active: Boolean = true) {
     }
     DisposableEffect(monitorOwner) { onDispose { monitorOwner.viewModelStore.clear() } }
     val monitor = viewModel<MonitorViewModel>(viewModelStoreOwner = monitorOwner) {
-        MonitorViewModel(store, accountId = currentAccount?.id, tokenProvider = account::bearerToken)
+        MonitorViewModel(store, accountId = currentAccount?.id, allowLocalHttp = allowLocalHttp, tokenProvider = account::bearerToken)
     }
-    val houses = viewModel<HousesViewModel> { HousesViewModel(ApiHousesRepository(accountClient)) }
+    val houses = viewModel<HousesViewModel> { HousesViewModel(ApiHousesRepository(accountClient, allowLocalHttp)) }
     LaunchedEffect(server, accountState.sessionRevision) { houses.configure(server, account.bearerToken()) }
+    val analytics = viewModel<AnalyticsViewModel> { AnalyticsViewModel(ApiAnalyticsRepository(accountClient, allowLocalHttp)) }
+    LaunchedEffect(server, house, accountState.sessionRevision) { analytics.configure(server, account.bearerToken(), house) }
+    val analyticsState by analytics.state.collectAsState()
+    LaunchedEffect(analyticsState.error) {
+        analytics.expiredSessionToken()?.let { account.invalidateSession(analyticsState.server, it) }
+    }
     val monitorState by monitor.state.collectAsState()
     val housesState by houses.state.collectAsState()
     LaunchedEffect(monitor, monitorState.sessionExpired, housesState.error, housesState.server) {
@@ -98,11 +104,16 @@ fun App(store: LocalStore, sessions: SessionStore, active: Boolean = true) {
         Scaffold(containerColor = colors.background, bottomBar = {
             NavigationBar {
                 NavigationBarItem(selected = page == Page.HOME, onClick = { page = Page.HOME }, icon = { Text("◉") }, label = { Text(t("Обзор", "Overview")) })
+                NavigationBarItem(selected = page == Page.ANALYTICS, onClick = { page = Page.ANALYTICS }, icon = { Text("▥") }, label = { Text(t("История", "History")) })
                 NavigationBarItem(selected = page == Page.HOUSES, onClick = { page = Page.HOUSES }, icon = { Text("⌂") }, label = { Text(t("Птичники", "Houses")) })
                 NavigationBarItem(selected = page == Page.ACCOUNT, onClick = { page = Page.ACCOUNT }, icon = { Text("○") }, label = { Text(t("Профиль", "Profile")) })
                 NavigationBarItem(selected = page == Page.SETTINGS, onClick = { page = Page.SETTINGS }, icon = { Text("⚙") }, label = { Text(t("Настройки", "Settings")) })
             }
         }) { padding ->
+            if (page == Page.ANALYTICS) {
+                AnalyticsScreen(analytics, ru, Modifier.padding(padding))
+                return@Scaffold
+            }
             if (page == Page.HOUSES) {
                 Box(Modifier.padding(padding)) {
                     key(server, accountState.sessionRevision) {

@@ -50,7 +50,7 @@ class SessionInvalidationTest {
             addHandler { calls++; respond("", HttpStatusCode.Unauthorized) }
         }))
         try {
-            val vm = MonitorViewModel(Store(), client, { 1000 }, "user", { "rejected" })
+            val vm = MonitorViewModel(Store(), client, { 1000 }, "user", tokenProvider = { "rejected" })
             vm.configure("https://server.example", "house", true); runCurrent()
             assertTrue(vm.state.value.sessionExpired)
             assertEquals("rejected", vm.expiredSessionToken())

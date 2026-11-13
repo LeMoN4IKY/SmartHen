@@ -50,9 +50,10 @@ internal class V1ApiClient(client: HttpClient, private val allowLocalHttp: Boole
         appendPathSegments("api", "v1")
         appendPathSegments(path.split('/'))
     }.buildString()
-    suspend fun request(server: String, path: String, token: String? = null, body: String? = null, post: Boolean = false): String =
+    suspend fun request(server: String, path: String, token: String? = null, body: String? = null, post: Boolean = false, query: Map<String, String> = emptyMap()): String =
         withTimeoutOrNull(15_000) {
             val response = authClient.request(endpoint(server, path)) {
+                url { query.forEach { (key, value) -> parameters.append(key, value) } }
                 method = if (post) HttpMethod.Post else HttpMethod.Get
                 if (token != null) bearerAuth(token)
                 if (body != null) { contentType(ContentType.Application.Json); setBody(body) }
